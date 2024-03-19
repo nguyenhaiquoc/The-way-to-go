@@ -1,10 +1,23 @@
 package main
 
-import "fmt"
+import (
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+/*
+	config https://github.com/rs/zerolog to log message in json format and to console
+*/
+
+func Add(a, b int) int {
+	log.Debug().Msgf("Adding %d and %d", a, b)
+	return a + b
+}
 
 func main() {
-	var number int        // Declaring  an integer variable
-	fmt.Println(number)   // Printing its value
-	var decision bool     // Declaring a boolean variable
-	fmt.Println(decision) // Printing its value
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Debug().Msg("Debug message")
+	log.Info().Msg("Hello, World!")
+	log.Info().Msg("Hello, World!")
+	Add(1, 2)
 }
