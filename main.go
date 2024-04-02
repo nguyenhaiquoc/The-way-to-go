@@ -14,6 +14,14 @@ func Add(a, b int) int {
 	return a + b
 }
 
+func sumInts(list ...int) (sum int) {
+	// https://www.educative.io/courses/the-way-to-go/challenge-variable-number-of-arguments
+	for _, v := range list {
+		sum += v
+	}
+	return sum
+}
+
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Debug().Msg("Debug message")
