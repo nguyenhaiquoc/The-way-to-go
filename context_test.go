@@ -69,3 +69,36 @@ func TestContextCancel(t *testing.T) {
 	close(done)
 	close(input)
 }
+
+// test context timeout function
+func TestContextTimeout(t *testing.T) {
+	// Create a new context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Use a channel to signal the completion of the goroutine
+	done := make(chan struct{})
+	input := make(chan int)
+
+	// send input to the goroutine every 0.5 second
+	go func() {
+		for i := 0; i < 100; i++ {
+			log.Info().Msgf("Sent input: %d", i)
+			input <- i
+			time.Sleep(300 * time.Millisecond)
+		}
+		done <- struct{}{}
+	}()
+
+	// Start the goroutine
+	go doSomething(ctx, input, done)
+
+	// Wait for the goroutine to complete
+	<-done
+	log.Info().Msg("Done")
+	// close input and done channel if it is not closed
+	close(done)
+	close(input)
+}
+
+// Todo: Nested context and cancel
