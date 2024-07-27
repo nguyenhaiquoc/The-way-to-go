@@ -3,6 +3,7 @@ package coffee
 import (
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -26,7 +27,12 @@ func GetCoffees() (*CoffeeList, error) {
 		fmt.Println("fatal error config file: %w", err)
 		return nil, err
 	}
+	// log raw data viper read from config file
+	log.Debug().Msgf("Raw data: %v", viper.AllSettings())
+	// Log all keys viper read from config file in json format
+	log.Debug().Msgf("All keys: %v", viper.AllKeys())
 
+	// unmarshal data into coffees
 	err = viper.Unmarshal(&Coffees)
 	if err != nil {
 		return nil, err
@@ -38,7 +44,7 @@ func IsCoffeeAvailable(coffeetype string) bool {
 	for _, element := range Coffees.List {
 		if element.Name == coffeetype {
 			result := fmt.Sprintf("%s for $%v", element.Name, element.Price)
-			fmt.Println(result)
+			log.Debug().Msgf("Coffee found: %v", result)
 			return true
 		}
 	}
