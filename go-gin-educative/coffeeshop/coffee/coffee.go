@@ -10,12 +10,12 @@ import (
 //var coffees = map[string]float32{"Latte":2.5, "Cappuccino": 2.75, "Flat White": 2.25}
 
 type CoffeeDetails struct {
-	Name  string
-	Price float32
+	Name  string  `json:"name"`
+	Price float32 `json:"price"`
 }
 
 type CoffeeList struct {
-	List []CoffeeDetails
+	List []CoffeeDetails `json:"list"`
 }
 
 var Coffees CoffeeList
