@@ -29,5 +29,5 @@ func getCoffee(c *gin.Context) {
 		return
 	}
 	log.Debug().Msgf("Coffees: %v", coffeelist)
-	c.String(http.StatusOK, " %s", coffeelist)
+	c.JSON(http.StatusOK, coffeelist)
 }
