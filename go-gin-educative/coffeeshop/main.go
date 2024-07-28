@@ -9,14 +9,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func ping(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Welcome to the Coffeeshop!",
+	})
+}
+
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Welcome to the Coffeeshop!",
-		})
-	})
+	r.GET("/ping", ping)
 	r.GET("/coffee", getCoffee)
 	r.Run(":8081")
 }
