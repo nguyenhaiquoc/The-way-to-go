@@ -65,6 +65,28 @@ func hash(client *redis.Client) {
 
 }
 
+func hash_then_delete(client *redis.Client, key string, userMap map[string]string) map[string]string {
+	ctx := context.Background()
+
+	_, err := client.HMSet(ctx, key, userMap).Result()
+	if err != nil {
+		log.Fatal("hmset failed", err)
+	}
+
+	// detete city key from hash
+	_, err = client.HDel(ctx, key, "city").Result()
+	if err != nil {
+		log.Fatal("hdel failed", err)
+	}
+
+	// return all keys stored in hash key as map
+	kvs, err := client.HGetAll(ctx, key).Result()
+	if err != nil {
+		log.Fatal("hgetall failed", err)
+	}
+	return kvs
+}
+
 type User struct {
 	Email string `redis:"email"`
 	Name  string `redis:"name"`
