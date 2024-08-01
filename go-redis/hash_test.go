@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-redis/redis/v8"
+	zlog "github.com/rs/zerolog/log"
 )
 
 func Test_hash(t *testing.T) {
@@ -66,7 +67,7 @@ func Test_hash_then_delete(t *testing.T) {
 }
 
 func Test_scan_play(t *testing.T) {
-	client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	client := redis.NewClient(&redis.Options{Addr: "localhost:6378"})
 	// remove all keys
 
 	userMap := map[string]string{
@@ -79,7 +80,9 @@ func Test_scan_play(t *testing.T) {
 	// delete user:1 key
 	_, err := client.Del(ctx, "user:1").Result()
 	if err != nil {
-		log.Fatal("del failed", err)
+		//log.Fatal("del failed", err)
+		// use zerolog to log Fatal
+		zlog.Fatal().Err(err).Msg("del failed")
 	}
 
 	// set the hash to redis
