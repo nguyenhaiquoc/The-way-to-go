@@ -9,7 +9,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func main() {
+func ping() {
 	client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 	_, err := client.Ping(context.Background()).Result()
 
