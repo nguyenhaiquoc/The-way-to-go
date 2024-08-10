@@ -8,7 +8,8 @@ import (
 
 	"math/rand/v2"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
@@ -108,8 +109,10 @@ func (s *RestServer) alwaysFail(w http.ResponseWriter, r *http.Request) {
 	panic("alwaysFail function failure")
 }
 
-// define recover middleware to catch panic and return 500
 func recoverMiddleware(next http.Handler) http.Handler {
+	/*
+		RecoverMiddleware is a middleware that recovers from panic and returns internal server error
+	*/
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			// Recover from panic and return internal server error
@@ -123,11 +126,13 @@ func recoverMiddleware(next http.Handler) http.Handler {
 }
 
 func initRestServer(redisClient *redis.Client) *RestServer {
-	chiRouter := chi.NewRouter()
-	chiRouter.Use(recoverMiddleware)
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Recoverer)
 
 	server := &RestServer{
-		router:      chiRouter,
+		router:      r,
 		redisClient: redisClient,
 	}
 	server.router.Post("/users", server.createUser)

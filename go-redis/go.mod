@@ -3,7 +3,7 @@ module go-redis
 go 1.22.5
 
 require (
-	github.com/go-chi/chi v1.5.5
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.6.1
