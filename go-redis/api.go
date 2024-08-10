@@ -101,18 +101,39 @@ func (s *RestServer) randomFail(w http.ResponseWriter, r *http.Request) {
 		panic("random failure")
 	}
 	w.Write([]byte("success"))
+}
 
+func (s *RestServer) alwaysFail(w http.ResponseWriter, r *http.Request) {
+	// always fail endpoint to check Exception handling
+	panic("alwaysFail function failure")
+}
+
+// define recover middleware to catch panic and return 500
+func recoverMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			// Recover from panic and return internal server error
+			if r := recover(); r != nil {
+				log.Error().Msgf("Recovered from panic: %v", r)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
 }
 
 func initRestServer(redisClient *redis.Client) *RestServer {
+	chiRouter := chi.NewRouter()
+	chiRouter.Use(recoverMiddleware)
+
 	server := &RestServer{
-		router:      chi.NewRouter(),
+		router:      chiRouter,
 		redisClient: redisClient,
 	}
-
 	server.router.Post("/users", server.createUser)
 	server.router.Get("/users/{id}", server.getUser)
 	server.router.Get("/random-fail", server.randomFail)
+	server.router.Get("/always-fail", server.alwaysFail)
 
 	return server
 }
