@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"math/rand/v2"
+
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -86,6 +88,22 @@ func (s *RestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
+func (s *RestServer) randomFail(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		// Recover from panic and return internal server error
+		if r := recover(); r != nil {
+			log.Error().Msgf("Recovered from panic: %v", r)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+	}()
+	// Randomly panic to simulate server failure
+	if rand.IntN(10) > 5 {
+		panic("random failure")
+	}
+	w.Write([]byte("success"))
+
+}
+
 func initRestServer(redisClient *redis.Client) *RestServer {
 	server := &RestServer{
 		router:      chi.NewRouter(),
@@ -94,18 +112,15 @@ func initRestServer(redisClient *redis.Client) *RestServer {
 
 	server.router.Post("/users", server.createUser)
 	server.router.Get("/users/{id}", server.getUser)
+	server.router.Get("/random-fail", server.randomFail)
 
 	return server
 }
 
 func main() {
-	server := &RestServer{
-		router: chi.NewRouter(),
-	}
-
-	server.router.Post("/users", server.createUser)
-	server.router.Get("/users/{id}", server.getUser)
-
-	fmt.Println("Starting server on port 8080...")
+	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	server := initRestServer(redisClient)
+	log.Info().Msg("Starting server on :8080")
 	http.ListenAndServe(":8080", server.router)
+	log.Info().Msg("Server stopped")
 }
