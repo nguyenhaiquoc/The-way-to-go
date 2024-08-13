@@ -16,7 +16,7 @@ import (
 )
 
 type RestServer struct {
-	server      *http.Server
+	httpServer  *http.Server
 	redisClient *redis.Client
 }
 
@@ -86,7 +86,7 @@ func (s *RestServer) getUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.server.Handler.ServeHTTP(w, r)
+	s.httpServer.Handler.ServeHTTP(w, r)
 }
 
 func (s *RestServer) randomFail(w http.ResponseWriter, r *http.Request) {
@@ -125,32 +125,34 @@ func recoverMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func initRestServer(redisClient *redis.Client) *RestServer {
+func (s *RestServer) routes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
-
-	httpServer := &http.Server{
-		Handler: r,
-	}
-
+	r.Post("/users", s.createUser)
+	r.Get("/users/{id}", s.getUser)
+	r.Get("/random-fail", s.randomFail)
+	r.Get("/always-fail", s.alwaysFail)
+	return r
+}
+func initRestServer(addr string, redisClient *redis.Client) *RestServer {
 	server := &RestServer{
-		server:      httpServer,
+		httpServer:  &http.Server{Addr: ":" + addr},
 		redisClient: redisClient,
 	}
-	r.Post("/users", server.createUser)
-	r.Get("/users/{id}", server.getUser)
-	r.Get("/random-fail", server.randomFail)
-	r.Get("/always-fail", server.alwaysFail)
-
+	server.httpServer.Handler = server.routes()
 	return server
 }
 
 func main() {
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
-	server := initRestServer(redisClient)
+	server := initRestServer("8080", redisClient)
 	log.Info().Msg("Starting server on :8080")
-	http.ListenAndServe(":8080", server)
+	err := server.httpServer.ListenAndServe()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to start server")
+	}
+
 	log.Info().Msg("Server stopped")
 }
