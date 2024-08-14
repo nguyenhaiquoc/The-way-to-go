@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	"math/rand/v2"
 
@@ -12,7 +14,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 )
 
 type RestServer struct {
@@ -56,7 +59,7 @@ func (s *RestServer) createUser(w http.ResponseWriter, r *http.Request) {
 	err = s.redisClient.HSet(context.Background(), uid, user).Err()
 	if err != nil {
 		// use zerolog to log error
-		log.Error().Err(err).Msg("failed to write user to redis")
+		zlog.Error().Err(err).Msg("failed to write user to redis")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -76,12 +79,12 @@ func (s *RestServer) getUser(w http.ResponseWriter, r *http.Request) {
 	err := s.redisClient.HGetAll(context.Background(), uid).Scan(&user)
 
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get user from redis")
+		zlog.Error().Err(err).Msg("failed to get user from redis")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	log.Debug().Msg(fmt.Sprintf("User: %v", user))
+	zlog.Debug().Msg(fmt.Sprintf("User: %v", user))
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -93,7 +96,7 @@ func (s *RestServer) randomFail(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		// Recover from panic and return internal server error
 		if r := recover(); r != nil {
-			log.Error().Msgf("Recovered from panic: %v", r)
+			zlog.Error().Msgf("Recovered from panic: %v", r)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 	}()
@@ -117,7 +120,7 @@ func recoverMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			// Recover from panic and return internal server error
 			if r := recover(); r != nil {
-				log.Error().Msgf("Recovered from panic: %v", r)
+				zlog.Error().Msgf("Recovered from panic: %v", r)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 		}()
@@ -136,9 +139,23 @@ func (s *RestServer) routes() http.Handler {
 	r.Get("/always-fail", s.alwaysFail)
 	return r
 }
+
+type zerologWriter struct {
+	logger zerolog.Logger
+}
+
+func (w zerologWriter) Write(p []byte) (n int, err error) {
+	w.logger.Error().Msg(string(p))
+	return len(p), nil
+}
+
 func initRestServer(addr string, redisClient *redis.Client) *RestServer {
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	zWriter := zerologWriter{logger: logger}
+
 	server := &RestServer{
-		httpServer:  &http.Server{Addr: ":" + addr},
+		httpServer:  &http.Server{Addr: ":" + addr, ErrorLog: log.New(zWriter, "", 0)},
 		redisClient: redisClient,
 	}
 	server.httpServer.Handler = server.routes()
@@ -148,11 +165,11 @@ func initRestServer(addr string, redisClient *redis.Client) *RestServer {
 func main() {
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 	server := initRestServer("8080", redisClient)
-	log.Info().Msg("Starting server on :8080")
+	zlog.Info().Msg("Starting server on :8080")
 	err := server.httpServer.ListenAndServe()
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to start server")
+		zlog.Error().Err(err).Msg("Failed to start server")
 	}
 
-	log.Info().Msg("Server stopped")
+	zlog.Info().Msg("Server stopped")
 }
