@@ -67,7 +67,7 @@ func Test_hash_then_delete(t *testing.T) {
 }
 
 func Test_scan_play(t *testing.T) {
-	client := redis.NewClient(&redis.Options{Addr: "localhost:6378"})
+	client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 	// remove all keys
 
 	userMap := map[string]string{

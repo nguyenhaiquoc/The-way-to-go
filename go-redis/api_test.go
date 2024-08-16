@@ -21,7 +21,7 @@ func Test_set_and_get_api(t *testing.T) {
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 	// remove all keys from the current database
 	redisClient.FlushAll(context.Background())
-	restServer := initRestServer(redisClient)
+	restServer := initRestServer("8080", redisClient)
 	// Test POST /users endpoint
 	user := UserInput{Name: "John Doe", Age: 10}
 	jsonUser, _ := json.Marshal(user)
