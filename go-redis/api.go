@@ -3,10 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
+	"go-redis/internal/models"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/jackc/pgx/v5"
 
 	"math/rand/v2"
 
@@ -149,7 +153,7 @@ func (w zerologWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func initRestServer(addr string, redisClient *redis.Client) *RestServer {
+func initRestServer(addr string, redisClient *redis.Client, userModel *models.UserModel) *RestServer {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	zWriter := zerologWriter{logger: logger}
@@ -162,14 +166,44 @@ func initRestServer(addr string, redisClient *redis.Client) *RestServer {
 	return server
 }
 
+func getPostgreConnection(dsn string) (*pgx.Conn, error) {
+	// get the postgre connection
+	// dsn := "postgres://your_user:your_password@localhost:5432/your_db?sslmode=disable"
+	// use pgx driver to connect to postgre (no )
+	zlog.Info().Msg("Connecting to Postgres")
+	conn, err := pgx.Connect(context.Background(), dsn)
+	if err != nil {
+		return nil, err
+	}
+	err = conn.Ping(context.Background())
+	if err != nil {
+		zlog.Error().Err(err).Msg("Failed to ping Postgres")
+		return nil, err
+	}
+	return conn, nil
+}
+
 func main() {
+	dsn := flag.String("dsn", "postgres://your_user:your_password@localhost:5432/your_db?sslmode=disable", "Postgres DSN")
+	dbConn, err := getPostgreConnection(*dsn)
+	if err != nil {
+		zlog.Error().Err(err).Msg("Failed to connect to Postgres")
+		// Exit with error
+		os.Exit(1)
+	}
+	defer dbConn.Close(context.Background())
+
+	userModel := &models.UserModel{DB: dbConn}
+
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
-	server := initRestServer("8080", redisClient)
+	server := initRestServer("8080", redisClient, userModel)
 	zlog.Info().Msg("Starting server on :8080")
-	err := server.httpServer.ListenAndServe()
+
+	// declare postgres dsn from flag
+
+	err = server.httpServer.ListenAndServe()
 	if err != nil {
 		zlog.Error().Err(err).Msg("Failed to start server")
 	}
-
 	zlog.Info().Msg("Server stopped")
 }

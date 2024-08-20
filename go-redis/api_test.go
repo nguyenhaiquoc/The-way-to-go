@@ -5,12 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go-redis/internal/models"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 func Test_set_and_get_api(t *testing.T) {
@@ -21,7 +24,17 @@ func Test_set_and_get_api(t *testing.T) {
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 	// remove all keys from the current database
 	redisClient.FlushAll(context.Background())
-	restServer := initRestServer("8080", redisClient)
+	dsn := "postgres://your_user:your_password@localhost:5432/your_db?sslmode=disable"
+	dbConn, err := getPostgreConnection(dsn)
+	if err != nil {
+		zlog.Error().Err(err).Msg("Failed to connect to Postgres")
+		// Exit with error
+		os.Exit(1)
+	}
+	defer dbConn.Close(context.Background())
+
+	userModel := &models.UserModel{DB: dbConn}
+	restServer := initRestServer("8080", redisClient, userModel)
 	// Test POST /users endpoint
 	user := UserInput{Name: "John Doe", Age: 10}
 	jsonUser, _ := json.Marshal(user)
@@ -81,4 +94,21 @@ func Test_debug_jsin(t *testing.T) {
 
 	// Print the struct
 	fmt.Printf("UserOutput struct: %+v\n", user)
+}
+
+// test get postgre connection function using flag
+func Test_get_postgre_connection(t *testing.T) {
+	// get the postgre connection
+	dsn := "postgres://your_user:your_password@localhost:5432/your_db?sslmode=disable"
+	conn, err := getPostgreConnection(dsn)
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+	defer conn.Close(context.Background())
+
+	// check the connection
+	err = conn.Ping(context.Background())
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
 }
