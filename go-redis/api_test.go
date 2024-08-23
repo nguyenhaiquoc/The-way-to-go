@@ -31,7 +31,7 @@ func Test_set_and_get_api(t *testing.T) {
 		// Exit with error
 		os.Exit(1)
 	}
-	defer dbConn.Close(context.Background())
+	defer dbConn.Close()
 
 	userModel := &models.UserModel{DB: dbConn}
 	restServer := initRestServer("8080", redisClient, userModel)
@@ -104,7 +104,7 @@ func Test_get_postgre_connection(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	// check the connection
 	err = conn.Ping(context.Background())

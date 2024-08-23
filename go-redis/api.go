@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jackc/pgx/v5"
-
 	"math/rand/v2"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -166,12 +166,12 @@ func initRestServer(addr string, redisClient *redis.Client, userModel *models.Us
 	return server
 }
 
-func getPostgreConnection(dsn string) (*pgx.Conn, error) {
+func getPostgreConnection(dsn string) (*pgxpool.Pool, error) {
 	// get the postgre connection
 	// dsn := "postgres://your_user:your_password@localhost:5432/your_db?sslmode=disable"
 	// use pgx driver to connect to postgre (no )
 	zlog.Info().Msg("Connecting to Postgres")
-	conn, err := pgx.Connect(context.Background(), dsn)
+	conn, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func main() {
 		// Exit with error
 		os.Exit(1)
 	}
-	defer dbConn.Close(context.Background())
+	defer dbConn.Close()
 
 	userModel := &models.UserModel{DB: dbConn}
 
