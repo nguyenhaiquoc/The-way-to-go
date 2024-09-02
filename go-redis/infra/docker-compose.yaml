@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - 3100:3100
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - 9090:9090
+      
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=your_password
+
+  postgres:
+    image: postgres:16
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=your_user
+      - POSTGRES_PASSWORD=your_password
+      - POSTGRES_DB=your_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+volumes:
+      postgres_data:
